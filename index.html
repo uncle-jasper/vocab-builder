@@ -595,7 +595,7 @@ async function generateCard(word) {
   const full = document.querySelector('input[name="style"]:checked').value === 'full';
   const resp = await fetch('https://vocab-proxy.unclejasper79.workers.dev', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514', max_tokens: 1000,
       system: 'Vocabulary assistant. Respond ONLY with a JSON object, no markdown, no extra text. Format: {"word":"canonical spelling","pos":"abbreviated part of speech","definition":"...","example":"..."}',
