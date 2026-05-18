@@ -205,13 +205,14 @@
     <label>Word list <span class="inline-note">bulk</span></label>
     <textarea id="word-list" placeholder="Paste one word per line, or paste/upload a Kobo CSV export:&#10;&#10;ephemeral&#10;melancholy&#10;sanguine&#10;&#10;— or —&#10;&#10;word,definition,sentence&#10;ephemeral,lasting a short time,..."></textarea>
     <div class="hint">
-      Accepts plain word lists (one per line) <b>or</b> Kobo stock CSV exports — it'll detect the format automatically.<br>
-      Or upload a CSV file directly:
+      Accepts plain word lists (one per line) or Kobo CSV exports — auto-detected.<br>
+      Or import directly from your Kobo's database file:
     </div>
     <div class="row">
       <button class="primary" onclick="addBulk()" id="btn-bulk">Generate All</button>
-      <button class="blue-btn" onclick="document.getElementById('csv-file').click()">Upload Kobo CSV</button>
-      <input type="file" id="csv-file" accept=".csv,.txt" onchange="loadCSVFile(event)">
+      <button class="blue-btn" onclick="document.getElementById('sqlite-file').click()">📚 KoboReader.sqlite</button>
+      <input type="file" id="sqlite-file" accept=".sqlite,.sqlite3,.db" onchange="loadSQLiteFile(event)">
+
       <button onclick="document.getElementById('word-list').value=''">Clear</button>
     </div>
   </div>
@@ -531,6 +532,60 @@ function loadCSVFile(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+async function loadSQLiteFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  setStatus('running', 'Reading KoboReader.sqlite…');
+
+  try {
+    // Load sql.js dynamically
+    if (!window.SQL) {
+      setStatus('running', 'Loading SQLite engine…');
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      window.SQL = await initSqlJs({
+        locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+      });
+    }
+
+    // Read file as ArrayBuffer
+    const buffer = await file.arrayBuffer();
+    const db = new window.SQL.Database(new Uint8Array(buffer));
+
+    // Query the WordList table
+    let words = [];
+    try {
+      const result = db.exec("SELECT DISTINCT Text FROM WordList WHERE Text IS NOT NULL AND Text != '' ORDER BY DateCreated DESC");
+      if (result.length && result[0].values.length) {
+        words = result[0].values.map(row => row[0].trim()).filter(Boolean);
+      }
+    } catch(e) {
+      // Try alternate table name
+      const result = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+      const tables = result[0]?.values.map(r => r[0]) || [];
+      throw new Error(`WordList table not found. Tables in this file: ${tables.join(', ')}`);
+    }
+    db.close();
+
+    if (!words.length) {
+      setStatus('warn', 'No words found in Vocabulary Builder — have you looked up words using the Kobo dictionary while reading?');
+      return;
+    }
+
+    document.getElementById('word-list').value = words.join('\n');
+    setStatus('done', `✓ ${words.length} words extracted from Kobo — review the list then hit Generate All`);
+
+  } catch(e) {
+    setStatus('error', `SQLite error: ${e.message}`);
+  }
 }
 
 // ── CLAUDE ──
