@@ -593,7 +593,7 @@ async function generateCard(word) {
   const key = getKey();
   if (!key) throw new Error('No API key — add in Settings');
   const full = document.querySelector('input[name="style"]:checked').value === 'full';
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('https://vocab-proxy.unclejasper79.workers.dev', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
