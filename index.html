@@ -544,7 +544,7 @@ async function generateCard(word) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514', max_tokens: 1000,
       system: 'Vocabulary assistant. Respond ONLY with a JSON object, no markdown, no extra text. Format: {"word":"canonical spelling","pos":"abbreviated part of speech","definition":"...","example":"..."}',
-      messages: [{ role: 'user', content: `Word: "${word}"\n${full ? 'Definition: 2-3 sentences + brief usage note.' : 'Definition: 1-2 sentences, concise.'}\nExample: one vivid natural sentence using the word in context. JSON only.` }]
+      messages: [{ role: 'user', content: `Word: "${word}"\n${full ? 'Definition: 2-3 sentences of core meaning, then on a new line write exactly "---", then on another new line write a usage note covering register, common collocations, or nuances that help a writer deploy the word correctly.' : 'Definition: 1-2 sentences, concise core meaning only.'}\nExample: one vivid natural sentence using the word in context. JSON only.` }]
     })
   });
   if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'API error ' + resp.status); }
@@ -641,13 +641,19 @@ function renderCards() {
         <span>${esc(c.word)}${c.pos ? ` <span class="pos">${esc(c.pos)}</span>` : ''}</span>
         <button class="card-delete" onclick="deleteCard('${c.id}')">×</button>
       </div>
-      <div class="card-def">${esc(c.definition||'')}</div>
-      ${c.example ? `<div class="card-example">"${esc(c.example)}"</div>` : ''}
+      <div class="card-def">${formatDef(c.definition||'')}</div>
+      ${c.example ? `<div style="border-top:1px solid var(--border);margin:6px 0 4px"></div><div class="card-example">"${esc(c.example)}"</div>` : ''}
       <div class="card-meta">${c.exported ? '✓ exported' : '● new'} · ${new Date(c.created_at).toLocaleDateString()}</div>
     </div>`).join('');
 }
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function formatDef(s) {
+  const parts = s.split(/\n?---\n?/);
+  if (parts.length === 1) return esc(s);
+  return esc(parts[0].trim()) + '<div style="border-top:1px solid var(--border);margin:6px 0 4px;padding-top:4px;color:var(--text-dim);font-size:11px">' + esc(parts[1].trim()) + '</div>';
+}
 
 async function deleteCard(id) {
   await sbDelete(id);
