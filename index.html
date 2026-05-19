@@ -425,6 +425,7 @@
 // ── CONFIG ──
 const SB_URL = 'https://xtojsoxmefxrmhlmzxnz.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0b2pzb3htZWZ4cm1obG16eG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0Mzk3NzIsImV4cCI6MjA5MTAxNTc3Mn0.90v8L67N0-H2Twr_LXdOR29_il8MVj3sgbMhp-JMn_k';
+const APP_SECRET = 'vb-8f3k2p9x-dan';
 
 function saveSetting(k, v) { localStorage.setItem(k, v.trim()); }
 function getSetting(k) { return localStorage.getItem(k) || ''; }
@@ -438,6 +439,7 @@ async function sb(path, opts = {}) {
     headers: {
       apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY,
       'Content-Type': 'application/json',
+      'x-app-secret': APP_SECRET,
       ...(opts.prefer ? { Prefer: opts.prefer } : {}),
       ...(opts.headers || {})
     }
