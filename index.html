@@ -267,8 +267,12 @@
     <div class="step-label">Step 2 — Set up fields</div>
     <div class="step-body">
       Select <code>Vocab Builder</code> → <b>Fields</b><br>
-      Delete any existing fields, then add three fields in this order:<br>
-      <code>Word</code> &nbsp;·&nbsp; <code>Definition</code> &nbsp;·&nbsp; <code>Example</code>
+      Anki starts you with a "Front" and "Back" field. Don't delete them — rename them instead:<br><br>
+      1. Rename <code>Front</code> → <code>Word</code><br>
+      2. Rename <code>Back</code> → <code>Definition</code><br>
+      3. Click <b>Add</b> → name it <code>Example</code><br>
+      4. Click <b>Add</b> again → name it <code>Audio</code><br><br>
+      Final order: <code>Word</code> · <code>Definition</code> · <code>Example</code> · <code>Audio</code>
     </div>
   </div>
 
@@ -345,7 +349,7 @@
       <b>File → Import</b> → select the exported <code>.txt</code> file<br>
       Set Note Type to <code>Vocab Builder</code><br>
       Separator: <code>Tab</code><br>
-      Map fields: Field 1 → <code>Word</code>, Field 2 → <code>Definition</code>, Field 3 → <code>Example</code><br>
+      Map fields: Field 1 → <code>Word</code>, Field 2 → <code>Definition</code>, Field 3 → <code>Example</code>, Field 4 → <code>Audio</code> (leave mapped but it will be empty — AwesomeTTS fills it)<br>
       Check <b>Update existing notes where first field matches</b> — this prevents duplicates at the Anki level too.<br><br>
       Run AwesomeTTS on the newly imported cards to generate audio.
     </div>
