@@ -332,26 +332,28 @@
   </div>
 
   <div class="setup-step">
-    <div class="step-label">Step 5 — Audio with AwesomeTTS</div>
+    <div class="step-label">Step 5 — Import cards into Anki</div>
     <div class="step-body">
-      After importing new cards:<br>
-      1. In the card browser, select your new cards<br>
-      2. <b>AwesomeTTS → Add Audio to Selected</b><br>
-      3. Source field: <code>Word</code> → Destination field: <code>Audio</code><br>
-      4. Choose a TTS service (Google TTS works well) → Generate<br><br>
-      This fills the <code>Audio</code> field with <code>[sound:word.mp3]</code> tags, which both card templates display automatically.
+      This is a one-time setup — come back here each time you want to add new cards.<br><br>
+      1. In the vocab builder app, go to the Cards tab → <b>Export New Cards</b><br>
+      2. In Anki: <b>File → Import</b> → select the exported <code>.txt</code> file<br>
+      3. Set Note Type to <code>Vocab Builder</code><br>
+      4. Separator: <code>Tab</code><br>
+      5. Map fields: Field 1 → <code>Word</code>, Field 2 → <code>Definition</code>, Field 3 → <code>Example</code>, Field 4 → <code>Audio</code> (will be empty — filled in the next step)<br>
+      6. Check <b>Update existing notes where first field matches</b> — prevents duplicates<br>
+      7. Click <b>Import</b>
     </div>
   </div>
 
   <div class="setup-step">
-    <div class="step-label">Step 6 — Importing cards</div>
+    <div class="step-label">Step 6 — Generate audio with AwesomeTTS</div>
     <div class="step-body">
-      <b>File → Import</b> → select the exported <code>.txt</code> file<br>
-      Set Note Type to <code>Vocab Builder</code><br>
-      Separator: <code>Tab</code><br>
-      Map fields: Field 1 → <code>Word</code>, Field 2 → <code>Definition</code>, Field 3 → <code>Example</code>, Field 4 → <code>Audio</code> (leave mapped but it will be empty — AwesomeTTS fills it)<br>
-      Check <b>Update existing notes where first field matches</b> — this prevents duplicates at the Anki level too.<br><br>
-      Run AwesomeTTS on the newly imported cards to generate audio.
+      Do this after each import to fill the Audio field on your new cards:<br><br>
+      1. Open the Anki card browser → select your newly imported cards<br>
+      2. <b>AwesomeTTS → Add Audio to Selected</b><br>
+      3. Source field: <code>Word</code> → Destination field: <code>Audio</code><br>
+      4. Choose a TTS service (Google TTS works well) → Generate<br><br>
+      This fills the <code>Audio</code> field with <code>[sound:word.mp3]</code> tags, which both card templates play automatically.
     </div>
   </div>
 
