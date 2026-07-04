@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocab Builder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400&display=swap');
+
+  :root {
+    --bg: #0e0e0e; --bg2: #161616; --bg3: #1e1e1e;
+    --border: #2a2a2a; --border-active: #444;
+    --text: #d4d0c8; --text-dim: #666; --text-faint: #3a3a3a;
+    --accent: #c8a96e; --accent-dim: #7a6540;
+    --green: #7aad7a; --green-dim: #3a5a3a;
+    --red: #ad7a7a; --red-dim: #5a3a3a;
+    --blue: #7a9aad; --blue-dim: #3a5a6a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    min-height: 100vh; padding: 32px 24px;
+    max-width: 860px; margin: 0 auto;
+  }
+
+  header {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 32px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+  header .sub { color: var(--text-dim); font-size: 11px; }
+  .sync-dot { margin-left: auto; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .sync-dot.ok { color: var(--green); }
+  .sync-dot.err { color: var(--red); }
+  .sync-dot.checking { color: var(--text-dim); }
+
+  .tabs { display: flex; flex-wrap: wrap; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 8px 16px; cursor: pointer; color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  label {
+    display: block; font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+  }
+
+  textarea, input[type="text"], input[type="password"] {
+    width: 100%; background: var(--bg2); border: 1px solid var(--border);
+    color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    padding: 12px; outline: none; resize: vertical;
+    transition: border-color 0.15s; border-radius: 2px;
+  }
+  textarea:focus, input:focus { border-color: var(--border-active); }
+  textarea { min-height: 120px; }
+
+  .hint { color: var(--text-dim); font-size: 11px; margin-top: 6px; line-height: 1.7; }
+  .hint code { color: var(--accent); background: var(--bg3); padding: 1px 5px; border-radius: 2px; font-size: 10px; }
+
+  .row { display: flex; gap: 10px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+
+  button {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 9px 16px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--bg3); color: var(--text-dim);
+    transition: all 0.15s; border-radius: 2px; white-space: nowrap;
+  }
+  button:hover { border-color: var(--border-active); color: var(--text); }
+  button.primary { border-color: var(--accent-dim); color: var(--accent); background: rgba(200,169,110,0.06); }
+  button.primary:hover { background: rgba(200,169,110,0.12); border-color: var(--accent); }
+  button.blue-btn { border-color: var(--blue-dim); color: var(--blue); background: rgba(122,154,173,0.06); }
+  button.blue-btn:hover { background: rgba(122,154,173,0.12); border-color: var(--blue); }
+  button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  input[type="file"] { display: none; }
+
+  .status-bar {
+    margin-top: 16px; padding: 10px 12px; background: var(--bg2);
+    border: 1px solid var(--border); font-size: 11px; color: var(--text-dim);
+    min-height: 38px; border-radius: 2px; line-height: 1.6;
+  }
+  .status-bar.running { border-color: var(--accent-dim); color: var(--accent); }
+  .status-bar.done { border-color: var(--green-dim); color: var(--green); }
+  .status-bar.error { border-color: var(--red-dim); color: var(--red); }
+  .status-bar.warn { border-color: var(--blue-dim); color: var(--blue); }
+
+  .cards-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .cards-count { font-size: 11px; color: var(--text-dim); }
+  .card-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+
+  .card-item {
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 12px 14px; border-radius: 2px; transition: border-color 0.15s;
+  }
+  .card-item:hover { border-color: var(--border-active); }
+  .card-item.new-card { border-color: var(--accent-dim); }
+
+  .card-word {
+    font-weight: 500; color: var(--accent); font-size: 13px; margin-bottom: 5px;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  }
+  .pos { font-size: 10px; color: var(--text-dim); font-weight: 300; flex-shrink: 0; }
+  .card-def { color: var(--text); font-size: 12px; margin-bottom: 5px; line-height: 1.5; font-family: 'IBM Plex Sans', sans-serif; }
+  .card-example { color: var(--text-dim); font-size: 11px; font-style: italic; font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; }
+  .card-meta { font-size: 10px; color: var(--text-faint); margin-top: 6px; }
+
+  .card-delete {
+    flex-shrink: 0; background: none; border: none; color: var(--text-faint);
+    cursor: pointer; font-size: 16px; padding: 0; font-family: monospace;
+    line-height: 1; text-transform: none; letter-spacing: 0;
+  }
+  .card-delete:hover { color: var(--red); border-color: transparent; background: none; }
+
+  .export-section { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 4px; }
+
+  .empty-state { text-align: center; padding: 48px 0; color: var(--text-faint); font-size: 12px; line-height: 2; }
+
+  .setting-row { margin-bottom: 22px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+
+  .inline-note {
+    display: inline-block; background: rgba(200,169,110,0.08);
+    border: 1px solid var(--accent-dim); color: var(--accent);
+    font-size: 10px; padding: 2px 7px; border-radius: 2px;
+    margin-left: 8px; vertical-align: middle;
+  }
+
+  /* Anki setup */
+  .setup-step {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 2px; padding: 16px; margin-bottom: 12px;
+  }
+  .step-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 8px; }
+  .step-body { font-size: 12px; color: var(--text-dim); line-height: 1.8; font-family: 'IBM Plex Sans', sans-serif; }
+  .step-body b { color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .step-body code { color: var(--accent); background: var(--bg3); padding: 1px 5px; border-radius: 2px; font-size: 10px; font-family: 'IBM Plex Mono', monospace; }
+
+  .template-block {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 2px; padding: 12px; margin: 10px 0;
+    font-size: 11px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.7; white-space: pre-wrap; word-break: break-all;
+  }
+
+  .copy-btn {
+    font-size: 10px; padding: 5px 10px; margin-top: 6px;
+  }
+
+  /* Bookmarklet */
+  .bookmarklet-link {
+    display: inline-block; background: rgba(122,154,173,0.1);
+    border: 1px solid var(--blue); color: var(--blue);
+    padding: 8px 16px; border-radius: 2px; text-decoration: none;
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: grab; margin: 10px 0; font-family: 'IBM Plex Mono', monospace;
+  }
+  .bookmarklet-link:hover { background: rgba(122,154,173,0.2); }
+  .bm-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 2px; padding: 16px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Vocab Builder</h1>
+  <span class="sub">→ Anki</span>
+  <span class="sync-dot checking" id="sync-status">● connecting</span>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('add')">+ Add Words</button>
+  <button class="tab" onclick="switchTab('cards')">Cards <span id="count-badge"></span></button>
+  <button class="tab" onclick="switchTab('anki')">Anki Setup</button>
+  <button class="tab" onclick="switchTab('bookmarklet')">Bookmarklet</button>
+  <button class="tab" onclick="switchTab('settings')">Settings</button>
+</div>
+
+<!-- ═══ ADD ═══ -->
+<div class="panel active" id="panel-add">
+
+  <div style="margin-bottom:22px">
+    <label>Single word or phrase</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="single-word" placeholder="e.g. pellucid" style="flex:1"
+             onkeydown="if(event.key==='Enter') addSingle()">
+      <button class="primary" onclick="addSingle()" id="btn-single">Generate</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div>
+    <label>Word list <span class="inline-note">bulk</span></label>
+    <textarea id="word-list" placeholder="Paste one word per line, or paste/upload a Kobo CSV export:&#10;&#10;ephemeral&#10;melancholy&#10;sanguine&#10;&#10;— or —&#10;&#10;word,definition,sentence&#10;ephemeral,lasting a short time,..."></textarea>
+    <div class="hint">
+      Accepts plain word lists (one per line) or Kobo CSV exports — auto-detected.<br>
+      Or import directly from your Kobo's database file:
+    </div>
+    <div class="row">
+      <button class="primary" onclick="addBulk()" id="btn-bulk">Generate All</button>
+      <button class="blue-btn" onclick="document.getElementById('sqlite-file').click()">📚 KoboReader.sqlite</button>
+      <input type="file" id="sqlite-file" accept=".sqlite,.sqlite3,.db" onchange="loadSQLiteFile(event)">
+
+      <button onclick="document.getElementById('word-list').value=''">Clear</button>
+    </div>
+  </div>
+
+  <div class="status-bar" id="status">// ready</div>
+</div>
+
+<!-- ═══ CARDS ═══ -->
+<div class="panel" id="panel-cards">
+  <div class="cards-header">
+    <span class="cards-count" id="cards-count">—</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="loadCards()" style="font-size:10px">↻ Refresh</button>
+      <button onclick="clearExported()" style="font-size:10px">Clear exported</button>
+    </div>
+  </div>
+
+  <div class="card-list" id="card-list">
+    <div class="empty-state">// loading…</div>
+  </div>
+
+  <div class="export-section" id="export-section" style="display:none">
+    <div class="hint" style="margin-bottom:14px">
+      <b style="color:var(--text)">Export New Cards</b> downloads only cards you haven't exported yet, then marks them done — no duplicates in Anki.<br>
+      In Anki: <code>File → Import</code> → select file → Note Type: <code>Vocab Builder</code> → separator: <code>Tab</code><br>
+      Fields map to: <code>Word</code> · <code>Definition</code> · <code>Example</code><br>
+      Then select new cards and run AwesomeTTS to generate audio for the Word field.
+    </div>
+    <div class="row">
+      <button class="primary" onclick="exportNew()">Export New Cards</button>
+      <button onclick="exportAll()">Export All</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ANKI SETUP ═══ -->
+<div class="panel" id="panel-anki">
+
+  <div class="hint" style="margin-bottom:20px">
+    One-time setup in Anki. Creates a Note Type with two card templates: <b style="color:var(--text)">Word → Definition</b> and <b style="color:var(--text)">Definition → Word</b>. Each note you import automatically generates both cards.
+  </div>
+
+  <div class="setup-step">
+    <div class="step-label">Step 1 — Create the Note Type</div>
+    <div class="step-body">
+      In Anki: <b>Tools → Manage Note Types → Add → Add: Basic → OK</b><br>
+      Name it <code>Vocab Builder</code> → OK
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-label">Step 2 — Set up fields</div>
+    <div class="step-body">
+      Select <code>Vocab Builder</code> → <b>Fields</b><br>
+      Anki starts you with a "Front" and "Back" field. Don't delete them — rename them instead:<br><br>
+      1. Rename <code>Front</code> → <code>Word</code><br>
+      2. Rename <code>Back</code> → <code>Definition</code><br>
+      3. Click <b>Add</b> → name it <code>Example</code><br>
+      4. Click <b>Add</b> again → name it <code>Audio</code><br><br>
+      Final order: <code>Word</code> · <code>Definition</code> · <code>Example</code> · <code>Audio</code>
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-label">Step 3 — Card Template 1: Word → Definition</div>
+    <div class="step-body">
+      Select <code>Vocab Builder</code> → <b>Cards</b> → rename to <code>Word → Definition</code><br>
+      Paste these into the front and back fields:
+    </div>
+    <div style="margin-top:10px">
+      <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Front Template</div>
+      <div class="template-block" id="t1-front">{{Word}}
+
+{{#Audio}}{{Audio}}{{/Audio}}</div>
+      <button class="copy-btn" onclick="copyText('t1-front')">Copy</button>
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Back Template</div>
+      <div class="template-block" id="t1-back">{{FrontSide}}
+
+<hr id=answer>
+
+{{Definition}}
+
+<br>
+
+<em>{{Example}}</em></div>
+      <button class="copy-btn" onclick="copyText('t1-back')">Copy</button>
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-label">Step 4 — Card Template 2: Definition → Word</div>
+    <div class="step-body">
+      Still in the Cards editor → <b>Options → Add Card Type</b> → name it <code>Definition → Word</code>
+    </div>
+    <div style="margin-top:10px">
+      <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Front Template</div>
+      <div class="template-block" id="t2-front">{{Definition}}</div>
+      <button class="copy-btn" onclick="copyText('t2-front')">Copy</button>
+    </div>
+    <div style="margin-top:12px">
+      <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Back Template</div>
+      <div class="template-block" id="t2-back">{{FrontSide}}
+
+<hr id=answer>
+
+<b>{{Word}}</b>
+
+{{#Audio}}{{Audio}}{{/Audio}}
+
+<br>
+
+<em>{{Example}}</em></div>
+      <button class="copy-btn" onclick="copyText('t2-back')">Copy</button>
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-label">Step 5 — Import cards into Anki</div>
+    <div class="step-body">
+      This is a one-time setup — come back here each time you want to add new cards.<br><br>
+      1. In the vocab builder app, go to the Cards tab → <b>Export New Cards</b><br>
+      2. In Anki: <b>File → Import</b> → select the exported <code>.txt</code> file<br>
+      3. Set Note Type to <code>Vocab Builder</code><br>
+      4. Separator: <code>Tab</code><br>
+      5. Map fields: Field 1 → <code>Word</code>, Field 2 → <code>Definition</code>, Field 3 → <code>Example</code>, Field 4 → <code>Audio</code> (will be empty — filled in the next step)<br>
+      6. Check <b>Update existing notes where first field matches</b> — prevents duplicates<br>
+      7. Click <b>Import</b>
+    </div>
+  </div>
+
+  <div class="setup-step">
+    <div class="step-label">Step 6 — Generate audio with AwesomeTTS</div>
+    <div class="step-body">
+      Do this after each import to fill the Audio field on your new cards:<br><br>
+      1. Open the Anki card browser → select your newly imported cards<br>
+      2. <b>AwesomeTTS → Add Audio to Selected</b><br>
+      3. Source field: <code>Word</code> → Destination field: <code>Audio</code><br>
+      4. Choose a TTS service (Google TTS works well) → Generate<br><br>
+      This fills the <code>Audio</code> field with <code>[sound:word.mp3]</code> tags, which both card templates play automatically.
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ BOOKMARKLET ═══ -->
+<div class="panel" id="panel-bookmarklet">
+  <div class="hint" style="margin-bottom:20px">Highlight any word on any webpage → click the bookmark → card is generated and saved automatically. No need to open the app.</div>
+
+  <div style="margin-bottom:20px">
+    <div class="step-label" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:8px">Step 1 — Host this file on GitHub Pages</div>
+    <div class="hint">Push <code>vocab-builder.html</code> to your GitHub repo and set App URL in Settings.<br>Example: <code>https://uncle-jasper.github.io/vocab-builder/index.html</code></div>
+  </div>
+
+  <div style="margin-bottom:20px">
+    <div class="step-label" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:8px">Step 2 — Drag to bookmarks bar</div>
+    <div class="bm-box">
+      <div class="hint" style="margin-bottom:8px">Drag this to your browser bookmarks bar:</div>
+      <a class="bookmarklet-link" id="bookmarklet-anchor" href="#">📖 Add to Vocab</a>
+      <div class="hint" style="margin-top:8px">Set App URL in Settings first, or this won't work.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="step-label" style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:8px">Step 3 — Use it anywhere</div>
+    <div class="hint">
+      Select a word on any page → click the bookmarklet → a small window opens, generates and saves the card, closes in ~1 second.<br>
+      Works on Mac, iPhone (add to Safari Reading List then Bookmarks), anywhere with a browser.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div class="panel" id="panel-settings">
+  <div class="setting-row">
+    <label>Anthropic API key</label>
+    <input type="password" id="api-key-input" placeholder="sk-ant-…" oninput="saveSetting('vc-key', this.value)">
+    <div class="hint">Used only for card generation. Sent only to api.anthropic.com.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="setting-row">
+    <label>App URL <span class="inline-note">for bookmarklet</span></label>
+    <input type="text" id="app-url-input"
+           placeholder="https://uncle-jasper.github.io/vocab-builder/index.html"
+           oninput="saveSetting('vc-url', this.value); updateBookmarklet()">
+    <div class="hint">The public hosted URL of this file. Required for the bookmarklet.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="setting-row">
+    <label>Definition style</label>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+      <label style="text-transform:none;font-size:12px;display:flex;gap:8px;align-items:center;cursor:pointer">
+        <input type="radio" name="style" value="concise" checked> Concise (1–2 sentences)
+      </label>
+      <label style="text-transform:none;font-size:12px;display:flex;gap:8px;align-items:center;cursor:pointer">
+        <input type="radio" name="style" value="full"> Full (definition + usage notes)
+      </label>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="setting-row">
+    <label>Supabase</label>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="sb-status-detail">Checking…</div>
+    <div class="hint" style="margin-top:8px">Project: <code>read-n-collect</code> · Host: <code>xtojsoxmefxrmhlmzxnz.supabase.co</code></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const SB_URL = 'https://xtojsoxmefxrmhlmzxnz.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0b2pzb3htZWZ4cm1obG16eG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0Mzk3NzIsImV4cCI6MjA5MTAxNTc3Mn0.90v8L67N0-H2Twr_LXdOR29_il8MVj3sgbMhp-JMn_k';
+const APP_SECRET = 'vb-8f3k2p9x-dan';
+
+function saveSetting(k, v) { localStorage.setItem(k, v.trim()); }
+function getSetting(k) { return localStorage.getItem(k) || ''; }
+function getKey() { return getSetting('vc-key'); }
+function getAppUrl() { return getSetting('vc-url'); }
+
+// ── SUPABASE ──
+async function sb(path, opts = {}) {
+  return fetch(SB_URL + path, {
+    ...opts,
+    headers: {
+      apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'x-app-secret': APP_SECRET,
+      ...(opts.prefer ? { Prefer: opts.prefer } : {}),
+      ...(opts.headers || {})
+    }
+  });
+}
+
+async function sbInsert(card) {
+  const r = await sb('/rest/v1/vocab_cards', { method: 'POST', prefer: 'return=representation', body: JSON.stringify(card) });
+  if (!r.ok) throw new Error('DB error ' + r.status);
+  return r.json();
+}
+
+async function sbAll() {
+  const r = await sb('/rest/v1/vocab_cards?order=created_at.desc');
+  if (!r.ok) throw new Error('DB error ' + r.status);
+  return r.json();
+}
+
+async function sbGetExistingWords() {
+  const r = await sb('/rest/v1/vocab_cards?select=word');
+  if (!r.ok) return new Set();
+  const data = await r.json();
+  return new Set(data.map(d => d.word.toLowerCase().trim()));
+}
+
+async function sbPatch(ids, data) {
+  if (!ids.length) return;
+  return sb('/rest/v1/vocab_cards?id=in.(' + ids.map(i => `"${i}"`).join(',') + ')', { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+async function sbDelete(id) {
+  return sb('/rest/v1/vocab_cards?id=eq.' + id, { method: 'DELETE' });
+}
+
+// ── CONNECTION ──
+async function checkConnection() {
+  const dot = document.getElementById('sync-status');
+  const det = document.getElementById('sb-status-detail');
+  try {
+    const r = await sb('/rest/v1/vocab_cards?limit=1');
+    if (r.ok) { dot.textContent = '● synced'; dot.className = 'sync-dot ok'; det.textContent = '✓ Connected'; }
+    else throw new Error(r.status);
+  } catch(e) { dot.textContent = '● offline'; dot.className = 'sync-dot err'; det.textContent = 'Connection failed: ' + e.message; }
+}
+
+// ── TABS ──
+const TAB_NAMES = ['add','cards','anki','bookmarklet','settings'];
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', TAB_NAMES[i] === name));
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', TAB_NAMES[i] === name));
+  if (name === 'cards') loadCards();
+}
+
+// ── CSV PARSING ──
+function parseInput(raw) {
+  const lines = raw.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+
+  // Detect CSV: if first non-empty line contains commas and looks like headers or data
+  const firstLine = lines[0];
+  const looksLikeCSV = firstLine.split(',').length > 1;
+
+  if (!looksLikeCSV) {
+    // Plain word list
+    return lines;
+  }
+
+  // CSV: extract first column, skip header row if it looks like one
+  const words = [];
+  let skipFirst = false;
+  const firstCol = firstLine.split(',')[0].toLowerCase().trim();
+  if (['word', 'term', 'vocabulary', 'vocab'].includes(firstCol)) skipFirst = true;
+
+  for (let i = (skipFirst ? 1 : 0); i < lines.length; i++) {
+    // Handle quoted CSV values
+    const match = lines[i].match(/^"([^"]*)"/) || lines[i].match(/^([^,]+)/);
+    if (match) {
+      const word = match[1].trim();
+      if (word) words.push(word);
+    }
+  }
+  return words;
+}
+
+function loadCSVFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('word-list').value = e.target.result;
+    setStatus('', `CSV loaded: ${file.name} — hit Generate All to process`);
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+async function loadSQLiteFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  setStatus('running', 'Reading KoboReader.sqlite…');
+
+  try {
+    // Load sql.js dynamically
+    if (!window.SQL) {
+      setStatus('running', 'Loading SQLite engine…');
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      window.SQL = await initSqlJs({
+        locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+      });
+    }
+
+    // Read file as ArrayBuffer
+    const buffer = await file.arrayBuffer();
+    const db = new window.SQL.Database(new Uint8Array(buffer));
+
+    // Query the WordList table
+    let words = [];
+    try {
+      const result = db.exec("SELECT DISTINCT Text FROM WordList WHERE Text IS NOT NULL AND Text != '' ORDER BY DateCreated DESC");
+      if (result.length && result[0].values.length) {
+        words = result[0].values.map(row => row[0].trim()).filter(Boolean);
+      }
+    } catch(e) {
+      // Try alternate table name
+      const result = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+      const tables = result[0]?.values.map(r => r[0]) || [];
+      throw new Error(`WordList table not found. Tables in this file: ${tables.join(', ')}`);
+    }
+    db.close();
+
+    if (!words.length) {
+      setStatus('warn', 'No words found in Vocabulary Builder — have you looked up words using the Kobo dictionary while reading?');
+      return;
+    }
+
+    document.getElementById('word-list').value = words.join('\n');
+    setStatus('done', `✓ ${words.length} words extracted from Kobo — review the list then hit Generate All`);
+
+  } catch(e) {
+    setStatus('error', `SQLite error: ${e.message}`);
+  }
+}
+
+// ── CLAUDE ──
+async function generateCard(word) {
+  const key = getKey();
+  if (!key) throw new Error('No API key — add in Settings');
+  const full = document.querySelector('input[name="style"]:checked').value === 'full';
+  const resp = await fetch('https://vocab-proxy.unclejasper79.workers.dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6', max_tokens: 1000,
+      system: 'Vocabulary assistant. Respond ONLY with a JSON object, no markdown, no extra text. Format: {"word":"canonical spelling","pos":"abbreviated part of speech","definition":"...","example":"..."}',
+      messages: [{ role: 'user', content: `Word: "${word}"\n${full ? 'Definition: 2-3 sentences of core meaning, then on a new line write exactly "---", then on another new line write a usage note covering register, common collocations, or nuances that help a writer deploy the word correctly.' : 'Definition: 1-2 sentences, concise core meaning only.'}\nExample: one vivid natural sentence using the word in context. JSON only.` }]
+    })
+  });
+  if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'API error ' + resp.status); }
+  const d = await resp.json();
+  const raw = d.content.find(b => b.type === 'text')?.text || '';
+  return JSON.parse(raw.replace(/```json|```/g,'').trim());
+}
+
+// ── ADD SINGLE ──
+async function addSingle() {
+  const input = document.getElementById('single-word');
+  const word = input.value.trim();
+  if (!word) return;
+
+  setStatus('running', `checking for duplicates…`);
+  setBtns(true);
+
+  try {
+    const existing = await sbGetExistingWords();
+    if (existing.has(word.toLowerCase())) {
+      setStatus('warn', `"${word}" already in your deck — skipped`);
+      setBtns(false);
+      return;
+    }
+    setStatus('running', `generating "${word}"…`);
+    const card = await generateCard(word);
+    await sbInsert(card);
+    input.value = '';
+    setStatus('done', `✓ saved: ${card.word}`);
+    updateBadge();
+  } catch(e) { setStatus('error', e.message); }
+
+  setBtns(false);
+}
+
+// ── ADD BULK ──
+async function addBulk() {
+  const raw = document.getElementById('word-list').value;
+  const words = parseInput(raw);
+  if (!words.length) { setStatus('error', 'No words found — check format'); return; }
+
+  setBtns(true);
+  setStatus('running', `checking for duplicates…`);
+
+  const existing = await sbGetExistingWords();
+  const toProcess = words.filter(w => !existing.has(w.toLowerCase().trim()));
+  const skipped = words.length - toProcess.length;
+
+  if (!toProcess.length) {
+    setStatus('warn', `All ${words.length} word${words.length > 1 ? 's' : ''} already in your deck — nothing to add`);
+    setBtns(false);
+    return;
+  }
+
+  let done = 0, failed = 0;
+  for (const word of toProcess) {
+    setStatus('running', `[${done+failed+1}/${toProcess.length}] "${word}"${skipped ? ` · ${skipped} duplicate${skipped>1?'s':''} skipped` : ''}…`);
+    try { await sbInsert(await generateCard(word)); done++; }
+    catch { failed++; }
+    updateBadge();
+    await new Promise(r => setTimeout(r, 350));
+  }
+
+  document.getElementById('word-list').value = '';
+
+  let msg = `✓ ${done} saved`;
+  if (skipped) msg += ` · ${skipped} duplicate${skipped>1?'s':''} skipped`;
+  if (failed) msg += ` · ${failed} failed`;
+  setStatus(failed > 0 ? 'warn' : 'done', msg);
+  setBtns(false);
+}
+
+// ── CARDS ──
+let allCards = [];
+
+async function loadCards() {
+  const list = document.getElementById('card-list');
+  list.innerHTML = '<div class="empty-state">// loading…</div>';
+  try { allCards = await sbAll(); renderCards(); }
+  catch(e) { list.innerHTML = `<div class="empty-state" style="color:var(--red)">// error: ${e.message}</div>`; }
+}
+
+function renderCards() {
+  const list = document.getElementById('card-list');
+  const countEl = document.getElementById('cards-count');
+  const exportSec = document.getElementById('export-section');
+  const newCount = allCards.filter(c => !c.exported).length;
+  countEl.textContent = `${allCards.length} total · ${newCount} new`;
+  exportSec.style.display = allCards.length ? 'block' : 'none';
+  if (!allCards.length) { list.innerHTML = '<div class="empty-state">// no cards yet — add words from the Add tab</div>'; return; }
+  list.innerHTML = allCards.map(c => `
+    <div class="card-item${!c.exported ? ' new-card' : ''}">
+      <div class="card-word">
+        <span>${esc(c.word)}${c.pos ? ` <span class="pos">${esc(c.pos)}</span>` : ''}</span>
+        <button class="card-delete" onclick="deleteCard('${c.id}')">×</button>
+      </div>
+      <div class="card-def">${formatDef(c.definition||'')}</div>
+      ${c.example ? `<div style="border-top:1px solid var(--border);margin:6px 0 4px"></div><div class="card-example">"${esc(c.example)}"</div>` : ''}
+      <div class="card-meta">${c.exported ? '✓ exported' : '● new'} · ${new Date(c.created_at).toLocaleDateString()}</div>
+    </div>`).join('');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function formatDef(s) {
+  const parts = s.split(/\n?---\n?/);
+  if (parts.length === 1) return esc(s);
+  return esc(parts[0].trim()) + '<div style="border-top:1px solid var(--border);margin:6px 0 4px;padding-top:4px;color:var(--text-dim);font-size:11px">' + esc(parts[1].trim()) + '</div>';
+}
+
+async function deleteCard(id) {
+  await sbDelete(id);
+  allCards = allCards.filter(c => c.id !== id);
+  renderCards(); updateBadge();
+}
+
+async function clearExported() {
+  const exp = allCards.filter(c => c.exported);
+  if (!exp.length || !confirm(`Delete ${exp.length} exported cards from the app? (They stay in Anki.)`)) return;
+  for (const c of exp) await sbDelete(c.id);
+  allCards = allCards.filter(c => !c.exported);
+  renderCards(); updateBadge();
+}
+
+// ── EXPORT ──
+async function exportNew() {
+  const newCards = allCards.filter(c => !c.exported);
+  if (!newCards.length) { alert('No new cards to export.'); return; }
+  downloadTxt(newCards, `vocab-new-${today()}.txt`);
+  await sbPatch(newCards.map(c => c.id), { exported: true });
+  newCards.forEach(c => c.exported = true);
+  renderCards();
+}
+
+function exportAll() {
+  if (!allCards.length) { alert('No cards.'); return; }
+  downloadTxt(allCards, `vocab-all-${today()}.txt`);
+}
+
+function sanitizeField(s) {
+  if (!s) return '';
+  // Replace --- separator with <hr>, then replace any remaining newlines with <br>
+  return s.replace(/\n?---\n?/g, '<hr>').replace(/\n/g, '<br>');
+}
+
+function downloadTxt(cards, filename) {
+  const txt = cards.map(c => [
+    sanitizeField(c.word),
+    sanitizeField(c.definition),
+    sanitizeField(c.example)
+  ].join('\t')).join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([txt], { type: 'text/plain' })),
+    download: filename
+  });
+  a.click();
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+// ── COPY TEMPLATE ──
+function copyText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const orig = el.nextElementSibling.textContent;
+    el.nextElementSibling.textContent = '✓ Copied';
+    setTimeout(() => el.nextElementSibling.textContent = orig, 1500);
+  });
+}
+
+// ── BOOKMARKLET ──
+function updateBookmarklet() {
+  const url = getAppUrl() || 'https://YOUR-GITHUB-PAGES-URL/vocab-builder/index.html';
+  const code = `javascript:(function(){var w=(window.getSelection()||'').toString().trim();if(!w)return alert('Highlight a word first');window.open('${url}?word='+encodeURIComponent(w)+'&autoclose=1','_blank','width=520,height=320,toolbar=0');})();`;
+  const a = document.getElementById('bookmarklet-anchor');
+  if (a) a.href = code;
+}
+
+// ── URL PARAM HANDOFF ──
+async function handleUrlParam() {
+  const p = new URLSearchParams(window.location.search);
+  const word = p.get('word');
+  if (!word) return;
+  const decoded = decodeURIComponent(word);
+  document.getElementById('single-word').value = decoded;
+  if (!getKey()) { setStatus('error', 'No API key — add in Settings'); return; }
+
+  setStatus('running', `checking for duplicates…`);
+  setBtns(true);
+  try {
+    const existing = await sbGetExistingWords();
+    if (existing.has(decoded.toLowerCase())) {
+      setStatus('warn', `"${decoded}" already in your deck`);
+      if (p.get('autoclose')) setTimeout(() => window.close(), 1500);
+      setBtns(false);
+      return;
+    }
+    setStatus('running', `generating "${decoded}"…`);
+    const card = await generateCard(decoded);
+    await sbInsert(card);
+    setStatus('done', `✓ saved: ${card.word}`);
+    updateBadge();
+    if (p.get('autoclose')) setTimeout(() => window.close(), 1200);
+  } catch(e) { setStatus('error', e.message); }
+  setBtns(false);
+}
+
+// ── HELPERS ──
+function setStatus(type, msg) {
+  const el = document.getElementById('status');
+  el.textContent = '// ' + msg; el.className = 'status-bar ' + (type||'');
+}
+function setBtns(d) {
+  document.getElementById('btn-single').disabled = d;
+  document.getElementById('btn-bulk').disabled = d;
+}
+async function updateBadge() {
+  try {
+    const r = await sb('/rest/v1/vocab_cards?exported=eq.false&select=id');
+    const d = await r.json();
+    document.getElementById('count-badge').textContent = d.length ? `(${d.length})` : '';
+  } catch {}
+}
+
+// ── INIT ──
+window.addEventListener('load', async () => {
+  const k = getSetting('vc-key'); if (k) document.getElementById('api-key-input').value = k;
+  const u = getSetting('vc-url'); if (u) document.getElementById('app-url-input').value = u;
+  updateBookmarklet();
+  checkConnection();
+  await handleUrlParam();
+  updateBadge();
+  loadCards();
+});
+</script>
+</body>
+</html>
