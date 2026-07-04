@@ -605,7 +605,7 @@ async function generateCard(word) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+      model: 'claude-sonnet-4-6', max_tokens: 1000,
       system: 'Vocabulary assistant. Respond ONLY with a JSON object, no markdown, no extra text. Format: {"word":"canonical spelling","pos":"abbreviated part of speech","definition":"...","example":"..."}',
       messages: [{ role: 'user', content: `Word: "${word}"\n${full ? 'Definition: 2-3 sentences of core meaning, then on a new line write exactly "---", then on another new line write a usage note covering register, common collocations, or nuances that help a writer deploy the word correctly.' : 'Definition: 1-2 sentences, concise core meaning only.'}\nExample: one vivid natural sentence using the word in context. JSON only.` }]
     })
@@ -747,8 +747,18 @@ function exportAll() {
   downloadTxt(allCards, `vocab-all-${today()}.txt`);
 }
 
+function sanitizeField(s) {
+  if (!s) return '';
+  // Replace --- separator with <hr>, then replace any remaining newlines with <br>
+  return s.replace(/\n?---\n?/g, '<hr>').replace(/\n/g, '<br>');
+}
+
 function downloadTxt(cards, filename) {
-  const txt = cards.map(c => [c.word, c.definition, c.example||''].join('\t')).join('\n');
+  const txt = cards.map(c => [
+    sanitizeField(c.word),
+    sanitizeField(c.definition),
+    sanitizeField(c.example)
+  ].join('\t')).join('\n');
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([txt], { type: 'text/plain' })),
     download: filename
